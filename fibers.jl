@@ -20,18 +20,28 @@ const Dim = 2  # dimension of the system
 # Parameters   (in units μm, minutes, pN)
 p = (
     N = 100, # number of fibers
-    fiberlength = 0.5,  # unit: μm,
-    μ = 1.0, # damping coefficient, unit: pN/μm
-    I = 0.01, # moment of intertia
+    fiberlength = 0.4,  # unit: μm,
+    μ = 1.0, # damping coefficient, unit: pg/μm
+    I = 0.01, # moment of intertia, unit: too lazy to look it up
     κ = 10.0, # spring constant, unit: pN/μm
-    k1 = 1.0, # rate of connection creation, unit: 1/min
-    k0 = 0.8, # rate of connection destruction, unit: 1/min
+    k1 = 2.0, # rate of connection creation, unit: 1/min
+    k0 = 1.2, # rate of connection destruction, unit: 1/min
     #
-    f_ext = (xi, t) -> xi[1] < 0.5 ? (-0.2,0.0) : (0.2,0.0), # external force
-    σ = 1e-4, # noise 
+    f_ext = function (xi, t) 
+        if t > 1.0 
+            if xi[1] < 0.4 
+                return (-0.2, 0.0)
+            elseif xi[1] > 0.6
+                return (0.2, 0.0)
+            end
+        end
+        
+        return (0.0, 0.0)
+    end, # external force
+    σ = 1e-4, # noise
     # 
-    dt = 0.001, 
-    tend = 5.0,
+    dt = 0.001,  # unit: minutes
+    tend = 20.0, # unit: minutes
 )
 
 # initial conditions
@@ -246,8 +256,9 @@ fig = Figure( resolution = (1024, 480))
 ax = Axis(fig[1,1], title="ABM for fiber dynamics", aspect = DataAspect())
 data = plotdata(s_node, p)
 plotstate!(ax, data) 
+limits!(ax, -1, 2, -0.5, 0.5)
 
-skip = ceil(Int, length(sol) / 100)
+skip = ceil(Int, length(sol) / 200)
 record(fig, "fibers.mp4", 1:skip:length(sol)) do i 
     s_node[] = sol[i]  #update plots
 end 
