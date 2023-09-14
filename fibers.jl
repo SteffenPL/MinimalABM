@@ -23,7 +23,7 @@ p = (
     fiberlength = 0.5,  # unit: μm,
     μ = 1.0, # damping coefficient, unit: pN/μm
     I = 0.01, # moment of intertia
-    κ = 5.0, # spring constant, unit: pN/μm
+    κ = 10.0, # spring constant, unit: pN/μm
     k1 = 1.0, # rate of connection creation, unit: 1/min
     k0 = 0.8, # rate of connection destruction, unit: 1/min
     #
@@ -62,6 +62,7 @@ function dist(X, i, j)
     return sqrt(d) 
 end 
 
+# for the rotation of fibers, we need the orthogonal compelemnt of a fiber direction
 function orthcomplement(x)
     return (-x[2], x[1])
 end
@@ -70,6 +71,7 @@ function cross2D(x,y)
     return x[1]*y[2] - x[2]*y[1]
 end
 
+# computes if and where two lines intersect
 function intersectlinesegments(r, p, q, ℓ)
      # compute the intersection point
      a = dot(r, p)
@@ -83,6 +85,7 @@ function intersectlinesegments(r, p, q, ℓ)
      return (;l1, l2, intersect)
 end
 
+# main simulation code
 function simulate(s, p) 
 
     s = deepcopy(s) # make a copy of the state
@@ -90,8 +93,8 @@ function simulate(s, p)
     (;X, P, bonds) = s # unpack state
 
     sol = [deepcopy(s)]  # store the state at each time step
-    obs = nothing 
 
+    # it is good to allocate memory beforehand
     F = zeros(Dim, N)  # force on each fiber
     ω = zeros(Dim, N)  # torque on each fiber
 
