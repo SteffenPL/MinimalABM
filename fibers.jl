@@ -242,7 +242,7 @@ plotstate(s_node, p)
 
 # make a video 
 
-fig = Figure()
+fig = Figure( resolution = (1024, 480))
 ax = Axis(fig[1,1], title="ABM for fiber dynamics", aspect = DataAspect())
 data = plotdata(s_node, p)
 plotstate!(ax, data) 
