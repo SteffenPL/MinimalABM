@@ -7,7 +7,10 @@ One can consider using [Agents.jl]([ts.jl/stable/](https://juliadynamics.github.
 The model `fibers.jl` generates a simulation with linesegments that create and destroy adhesive bonds (linear springs) between them.
 If torn apart, this might model the behavior of biological fibers under stress:
 
-https://github.com/SteffenPL/MinimalABM/assets/4634605/97e5a07c-4792-4fef-9970-4b3ce13ea831
+
+
+https://github.com/SteffenPL/MinimalABM/assets/4634605/808ee79f-33e7-4aeb-84b0-e1a28f54ca83
+
 
 
 There are several bits which are missing for a relatistic biological model:
