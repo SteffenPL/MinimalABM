@@ -1,4 +1,4 @@
-using GLMakie, Graphs, BoundedDegreeGraphs, LinearAlgebra, StaticArrays
+using GLMakie, Graphs, BoundedDegreeGraphs, LinearAlgebra, StaticArrays, ProgressMeter
 Makie.inline!(true)
 
 # Note on Julia: The following Julia code uses a lot of 'NamedTuples'!
@@ -19,18 +19,18 @@ const Dim = 2  # dimension of the system
 
 # Parameters   (in units μm, minutes, pN)
 p = (
-    N = 20, # number of fibers
-    fiberlength = 1.0,  # unit: μm,
+    N = 100, # number of fibers
+    fiberlength = 0.5,  # unit: μm,
     μ = 1.0, # damping coefficient, unit: pN/μm
-    I = 10.0, # moment of intertia
-    κ = 1.0, # spring constant, unit: pN/μm
-    k1 = 0.1, # rate of connection creation, unit: 1/min
-    k0 = 0.1, # rate of connection destruction, unit: 1/min
+    I = 0.01, # moment of intertia
+    κ = 5.0, # spring constant, unit: pN/μm
+    k1 = 1.0, # rate of connection creation, unit: 1/min
+    k0 = 0.8, # rate of connection destruction, unit: 1/min
     #
-    f_ext = (xi, t) -> xi[1] < 0.5 ? (-1.0,0.0) : (1.0,0.0), # external force
+    f_ext = (xi, t) -> xi[1] < 0.5 ? (-0.2,0.0) : (0.2,0.0), # external force
     σ = 1e-4, # noise 
     # 
-    dt = 0.01, 
+    dt = 0.001, 
     tend = 5.0,
 )
 
@@ -38,8 +38,8 @@ p = (
 function initstate(p)
     (;N) = p  # unpack variables
 
-    X = rand(Dim, N)  # center of fiber 
-    P = randn(Dim, N)  # direction of fiber (normalized)
+    X = (1.0, 0.1) .* rand(Dim, N)  # center of fiber 
+    P = (1.0, 0.01) .* randn(Dim, N)  # direction of fiber, biased
     
     for i in 1:N
         P[:,i] ./= norm(P[:,i])
@@ -70,6 +70,19 @@ function cross2D(x,y)
     return x[1]*y[2] - x[2]*y[1]
 end
 
+function intersectlinesegments(r, p, q, ℓ)
+     # compute the intersection point
+     a = dot(r, p)
+     nij = a*p - r 
+     l2 = norm(nij)^2 / dot(nij, q) 
+     l1 = dot(r + q*l2, p)
+
+     # @assert X[:,j] + l2*q ≈ X[:,i] + l1*p  
+
+     intersect = abs(l1) < ℓ / 2 && abs(l2) < ℓ / 2
+     return (;l1, l2, intersect)
+end
+
 function simulate(s, p) 
 
     s = deepcopy(s) # make a copy of the state
@@ -82,7 +95,8 @@ function simulate(s, p)
     F = zeros(Dim, N)  # force on each fiber
     ω = zeros(Dim, N)  # torque on each fiber
 
-    while s.t[] < p.tend 
+    n_steps = ceil(Int, p.tend / p.dt)
+    @showprogress for step in 1:n_steps 
         
         # update time
         s.t[] += p.dt
@@ -98,18 +112,21 @@ function simulate(s, p)
                         Pj = P[:,j]
                         r = X[:,j] - X[:,i]
 
-                        # compute the intersection point
-                        a1 = dot(r, Pi)
-                        nij = a1*Pi - r 
-                        l2 = norm(nij)^2 / dot(nij, Pj) 
-                        l1 = dot(r + Pj*l2, Pi)
-
-                        @assert X[:,j] + l2*Pj ≈ X[:,i] + l1*Pi
-
-                        if abs(l1) < p.fiberlength / 2 && abs(l2) < p.fiberlength / 2
-                            # the fibers are connected
-                            add_edge!(bonds, i, j, (;l1, l2))  
-                            # important: i < j since unordered graph; otherwise order l1/l2 is swapped.
+                        l1, l2, intersecting = intersectlinesegments(r, Pi, Pj, p.fiberlength)
+                        
+                        if intersecting
+                            if rand() < 1.0 - exp(-p.k1 * p.dt)
+                                # create a new connection
+                                add_edge!(bonds, i, j, (;l1, l2))  
+                                # important here: Since we use an undirected graph, 
+                                # the indices i < j must be sorted, because otherwise,
+                                # the order of the points of attachment would be swapped.
+                            end
+                        end
+                    else 
+                        if rand() < 1.0 - exp(-p.k0 * p.dt)
+                            # destroy connection
+                            rem_edge!(bonds, i, j)
                         end
                     end
                 end
@@ -130,8 +147,8 @@ function simulate(s, p)
             F[:,j] .-= p.κ * nij
 
             if Dim == 2
-                ω[:,i] .+= p.κ * cross2D(Pi*l1, nij) * orthcomplement(Pi)
-                ω[:,j] .-= p.κ * cross2D(Pj*l2, nij) * orthcomplement(Pj)
+                ω[:,i] .+= p.κ * cross2D(Pi*l1, nij) .* orthcomplement(Pi)
+                ω[:,j] .-= p.κ * cross2D(Pj*l2, nij) .* orthcomplement(Pj)
             else 
                 @error "not implemented"
             end
@@ -223,11 +240,12 @@ plotstate(s_node, p)
 # make a video 
 
 fig = Figure()
-ax = Axis(fig[1,1], title="ABM for fiber dynamics")
+ax = Axis(fig[1,1], title="ABM for fiber dynamics", aspect = DataAspect())
 data = plotdata(s_node, p)
 plotstate!(ax, data) 
 
-record(fig, "demo.mp4", eachindex(sol)) do i 
+skip = ceil(Int, length(sol) / 100)
+record(fig, "fibers.mp4", 1:skip:length(sol)) do i 
     s_node[] = sol[i]  #update plots
 end 
 
