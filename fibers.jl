@@ -186,7 +186,7 @@ function simulate(s, p)
         push!(sol, deepcopy(s))
     end
 
-    return (;sol, obs) 
+    return sol 
 end
 
 # This function is used to make a movie in the end.
@@ -226,7 +226,7 @@ end
 function plotstate(s, p) 
     fig = Figure()
     ax = Axis(fig[1,1])
-    plotstate!(ax, plotdata(s, p))
+    plotstate!(ax, plotdata(Observable(s), p))
     fig
 end
 
@@ -242,12 +242,9 @@ s = initstate(p)
 #add_edge!(s.bonds, 2, 3)
 
 
-sol, obs = simulate(s, p)
+sol = simulate(s, p)
 
-s_node = Observable(s)
-plotstate(s_node, p)
-s_node[] = sol[2]
-plotstate(s_node, p)
+#plotstate(sol[1], p)
 
 
 # make a video 
