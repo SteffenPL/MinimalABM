@@ -251,8 +251,10 @@ sol = simulate(s, p)
 
 fig = Figure( resolution = (1024, 480))
 ax = Axis(fig[1,1], title="ABM for fiber dynamics", aspect = DataAspect())
+
+s_node = Observable(s)  # input for plotting pipeline
 data = plotdata(s_node, p)
-plotstate!(ax, data) 
+plotstate!(ax, data)  # updates automaticallally when we change s_node
 limits!(ax, -1, 2, -0.5, 0.5)
 
 skip = ceil(Int, length(sol) / 200)
