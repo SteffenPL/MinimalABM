@@ -1,7 +1,7 @@
 # MinimalABM
 
 Two minimal examples for agent-based models with pure Julia. 
-One can consider using Agents.jl instead!
+One can consider using [Agents.jl]([ts.jl/stable/](https://juliadynamics.github.io/Agents.jl/stable/)) instead!
 
 ## fibers
 The model `fibers.jl` generates a simulation with linesegments that create and destroy adhesive bonds (linear springs) between them.
