@@ -33,7 +33,10 @@ la = 2.0
 Cr = 1.0
 lr = 0.5
 alpha = 1.6
-beta = 0.5re
+beta = 0.5
+v0 = sqrt(alpha/beta)
+
+p = (;N , mass, L, Ca, la, Cr, lr, alpha, beta, v0) 
 p = map(dtype, p)
 
 pos = p.L * rand(SVec2, N)
@@ -84,11 +87,11 @@ function mills!(dz, z, p, t)
 
         VF[i] = [Vi; Fi] 
     end
-    # AK.synchronize(AK.get_backend(z))
+    AK.synchronize(AK.get_backend(z))
 end
 
-# dz = similar(z0)
-# @time mills!(dz, z0, p, nothing)
+dz = similar(z0)
+@time mills!(dz, z0, p, nothing)
 
 # z0_cpu = [to_array(pos); to_array(vel)]
 # dz_cpu = similar(z0_cpu)
@@ -103,7 +106,7 @@ prob = ODEProblem(mills!, z0, tspan, p)
 begin 
     fig = Figure(size = (1000, 400)) 
 
-    offset = (1.0, 8.0) .- p.L / 2
+    offset = (1.0, 5.0) .- p.L / 2
 
     for (k, t) in enumerate(sol.t)
         i, j = divrem(k -1, 4) .+ 1
